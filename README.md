@@ -1,29 +1,31 @@
-# PDF 水印去除 (PDF Watermark Remover)
+# PDF Watermark Remover
 
-Remove diagonal text watermarks from PDF files. Supports both single files and batch folder processing.
+Remove diagonal text watermarks from PDF files. Supports single files and batch folder processing.
 
 ## Features
 
 - **Two watermark types**: separate-stream watermarks and inline embedded watermarks
 - **Batch processing**: process entire folders, preserving directory structure
-- **macOS App**: self-contained `.app` with drag-and-drop UI (no Python needed)
+- **macOS App**: self-contained `.app` with drag-and-drop UI (no dependencies needed)
 - **CLI script**: lightweight command-line tool for automation
 - **Claude Code Skill**: integrates as a skill for Claude Code users
 
 ## macOS App
 
-Download `PDF水印去除.app` from [Releases](../../releases) — double-click to use, no installation required.
+Download **PDF Watermark Remover.app** from [Releases](../../releases) — double-click to use, no installation required.
 
-- Drag PDF files or folders onto the app icon
-- Or open the app and use the in-window drop zone
-- Progress bar with real-time status
-- Output path shown on completion
+- Drag PDF files or folders onto the app icon or into the in-window drop zone
+- Or click buttons to select files/folders
+- Real-time progress bar with processing log
+- Output path shown on completion with "Open in Finder" button
 
 ### Build from source
 
 ```bash
 pip install pymupdf pyinstaller tkinterdnd2
-pyinstaller --onedir --windowed --name "PDF水印去除" \
+
+pyinstaller --onedir --windowed \
+  --name "PDF Watermark Remover" \
   --icon AppIcon.icns --noconfirm \
   --hidden-import fitz --hidden-import pymupdf \
   --hidden-import tkinterdnd2 --collect-all tkinterdnd2 \

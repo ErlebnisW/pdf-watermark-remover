@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PDF水印去除 v2 - Self-contained macOS app with in-window drag-and-drop."""
+"""PDF Watermark Remover v2 - Self-contained macOS app with in-window drag-and-drop."""
 
 import re
 import shutil
@@ -12,7 +12,6 @@ from pathlib import Path
 
 import fitz  # PyMuPDF
 
-# Try to import tkinterdnd2 for in-window drag-and-drop
 try:
     from tkinterdnd2 import TkinterDnD, DND_FILES
     HAS_DND = True
@@ -82,6 +81,10 @@ def remove_watermark_from_pdf(input_path: str, output_path: str) -> int:
 
 # --- App UI ---
 
+APP_TITLE = "PDF Watermark Remover"
+SUFFIX = "_no_watermark"
+
+
 class WatermarkRemoverApp:
     def __init__(self):
         if HAS_DND:
@@ -89,18 +92,16 @@ class WatermarkRemoverApp:
         else:
             self.root = tk.Tk()
 
-        self.root.title("PDF水印去除")
+        self.root.title(APP_TITLE)
         self.root.geometry("580x440")
         self.root.resizable(False, False)
         self.root.configure(bg="#f5f5f7")
 
-        # Center on screen
         self.root.update_idletasks()
         x = (self.root.winfo_screenwidth() - 580) // 2
         y = (self.root.winfo_screenheight() - 440) // 2
         self.root.geometry(f"580x440+{x}+{y}")
 
-        # Style
         style = ttk.Style()
         style.configure("Big.TButton", font=("", 13), padding=(16, 8))
         style.configure("Title.TLabel", font=("", 22, "bold"), background="#f5f5f7")
@@ -110,7 +111,6 @@ class WatermarkRemoverApp:
         self.output_paths: list[str] = []
         self._build_main_ui()
 
-        # Handle file arguments (drag to app icon / Open With)
         args = sys.argv[1:]
         if args:
             self.root.after(100, lambda: self._start_processing(args))
@@ -122,11 +122,9 @@ class WatermarkRemoverApp:
         frame = ttk.Frame(self.root, style="Main.TFrame", padding=24)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        # Title
-        ttk.Label(frame, text="PDF 水印去除工具", style="Title.TLabel").pack(pady=(0, 4))
+        ttk.Label(frame, text=APP_TITLE, style="Title.TLabel").pack(pady=(0, 4))
         ttk.Label(frame, text="v2.0", style="Sub.TLabel").pack(pady=(0, 16))
 
-        # Drop zone
         self.drop_frame = tk.Canvas(
             frame, width=520, height=180,
             bg="#ffffff", highlightthickness=2,
@@ -134,57 +132,46 @@ class WatermarkRemoverApp:
             relief=tk.FLAT, cursor="hand2",
         )
         self.drop_frame.pack(pady=(0, 16))
-
-        # Draw dashed border inside
         self._draw_drop_zone_content()
-
-        # Bind click to open file dialog
         self.drop_frame.bind("<Button-1>", lambda e: self._pick_files())
 
-        # Enable drag-and-drop if available
         if HAS_DND:
             self.drop_frame.drop_target_register(DND_FILES)
             self.drop_frame.dnd_bind('<<DropEnter>>', self._on_drag_enter)
             self.drop_frame.dnd_bind('<<DropLeave>>', self._on_drag_leave)
             self.drop_frame.dnd_bind('<<Drop>>', self._on_drop)
 
-        # Buttons row
         btn_frame = ttk.Frame(frame, style="Main.TFrame")
         btn_frame.pack(pady=(0, 8))
 
-        ttk.Button(btn_frame, text="选择 PDF 文件", style="Big.TButton",
+        ttk.Button(btn_frame, text="Select PDFs", style="Big.TButton",
                    command=self._pick_files).pack(side=tk.LEFT, padx=8)
-        ttk.Button(btn_frame, text="选择文件夹", style="Big.TButton",
+        ttk.Button(btn_frame, text="Select Folder", style="Big.TButton",
                    command=self._pick_folder).pack(side=tk.LEFT, padx=8)
 
-        # Hint
-        ttk.Label(frame, text="支持批量处理 · 文件夹内所有 PDF 自动检测并去除水印",
+        ttk.Label(frame, text="Batch processing supported — auto-detects and removes watermarks from all PDFs in a folder",
                   style="Sub.TLabel").pack(pady=(8, 0))
 
     def _draw_drop_zone_content(self, active=False):
         c = self.drop_frame
         c.delete("all")
         w, h = 520, 180
-
-        # Dashed border
         color = "#007aff" if active else "#c0c0c0"
-        dash = (6, 4)
         pad = 12
         c.create_rectangle(pad, pad, w - pad, h - pad,
-                           outline=color, width=2, dash=dash)
+                           outline=color, width=2, dash=(6, 4))
 
         if active:
-            c.create_text(w // 2, h // 2 - 16, text="松开以添加文件",
+            c.create_text(w // 2, h // 2 - 16, text="Release to add files",
                           font=("", 18, "bold"), fill="#007aff")
-            c.create_text(w // 2, h // 2 + 20, text="释放鼠标即可开始处理",
+            c.create_text(w // 2, h // 2 + 20, text="Drop to start processing",
                           font=("", 12), fill="#007aff")
         else:
-            # Icon: down arrow
             cx, cy = w // 2, h // 2 - 24
-            c.create_text(cx, cy - 8, text="↓", font=("", 36), fill="#999")
-            c.create_text(cx, cy + 36, text="将 PDF 文件或文件夹拖拽到这里",
+            c.create_text(cx, cy - 8, text="\u2193", font=("", 36), fill="#999")
+            c.create_text(cx, cy + 36, text="Drag and drop PDF files or folders here",
                           font=("", 14), fill="#666")
-            c.create_text(cx, cy + 62, text="或点击此区域选择文件",
+            c.create_text(cx, cy + 62, text="or click to select files",
                           font=("", 11), fill="#999")
 
     def _on_drag_enter(self, event):
@@ -200,8 +187,6 @@ class WatermarkRemoverApp:
     def _on_drop(self, event):
         self.drop_frame.config(highlightbackground="#d0d0d0")
         self._draw_drop_zone_content(active=False)
-
-        # Parse dropped paths (may be space-separated, with {} for paths containing spaces)
         raw = event.data
         paths = []
         i = 0
@@ -209,7 +194,7 @@ class WatermarkRemoverApp:
             if raw[i] == '{':
                 end = raw.index('}', i)
                 paths.append(raw[i + 1:end])
-                i = end + 2  # skip } and space
+                i = end + 2
             elif raw[i] == ' ':
                 i += 1
             else:
@@ -218,38 +203,36 @@ class WatermarkRemoverApp:
                     end = len(raw)
                 paths.append(raw[i:end])
                 i = end + 1
-
         if paths:
             self._start_processing(paths)
         return event.action
 
     def _pick_files(self):
         files = filedialog.askopenfilenames(
-            title="选择 PDF 文件",
-            filetypes=[("PDF 文件", "*.pdf")],
+            title="Select PDF files",
+            filetypes=[("PDF files", "*.pdf")],
         )
         if files:
             self._start_processing(list(files))
 
     def _pick_folder(self):
-        folder = filedialog.askdirectory(title="选择文件夹")
+        folder = filedialog.askdirectory(title="Select folder")
         if folder:
             self._start_processing([folder])
 
     def _start_processing(self, items: list[str]):
         self.output_paths = []
-
         for w in self.root.winfo_children():
             w.destroy()
 
         frame = ttk.Frame(self.root, style="Main.TFrame", padding=24)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        self.p_title = ttk.Label(frame, text="正在处理...", font=("", 18, "bold"),
+        self.p_title = ttk.Label(frame, text="Processing...", font=("", 18, "bold"),
                                  background="#f5f5f7")
         self.p_title.pack(anchor=tk.W)
 
-        self.p_status = ttk.Label(frame, text="扫描文件中...", font=("", 12),
+        self.p_status = ttk.Label(frame, text="Scanning files...", font=("", 12),
                                   background="#f5f5f7")
         self.p_status.pack(anchor=tk.W, pady=(12, 4))
 
@@ -299,7 +282,7 @@ class WatermarkRemoverApp:
         for item_path in items:
             p = Path(item_path)
             if p.is_dir():
-                dst = p.parent / (p.name + "_无水印")
+                dst = p.parent / (p.name + SUFFIX)
                 dst.mkdir(exist_ok=True)
                 self.output_paths.append(str(dst))
                 for f in sorted(p.rglob("*")):
@@ -313,7 +296,7 @@ class WatermarkRemoverApp:
                         "name": str(rel), "is_pdf": f.suffix.lower() == ".pdf",
                     })
             elif p.suffix.lower() == ".pdf":
-                out = str(p.with_stem(p.stem + "_无水印"))
+                out = str(p.with_stem(p.stem + SUFFIX))
                 self.output_paths.append(out)
                 all_tasks.append({
                     "src": str(p), "dst": out,
@@ -333,26 +316,26 @@ class WatermarkRemoverApp:
             pct = int((i / total) * 100)
             self._update(
                 status=f"({i+1}/{total}) {name}",
-                detail="检测水印..." if task["is_pdf"] else "复制文件...",
+                detail="Detecting watermark..." if task["is_pdf"] else "Copying file...",
                 progress=pct,
             )
 
             if task["is_pdf"]:
                 if has_watermark(task["src"]):
-                    self._update(detail="去除水印中...")
+                    self._update(detail="Removing watermark...")
                     pages = remove_watermark_from_pdf(task["src"], task["dst"])
                     wm_removed += 1
-                    self._log(f"  ✓ 去除水印 ({pages}页): {name}")
+                    self._log(f"  Removed ({pages} pages): {name}")
                 else:
                     shutil.copy2(task["src"], task["dst"])
                     copied += 1
-                    self._log(f"  - 无水印，已复制: {name}")
+                    self._log(f"  No watermark, copied: {name}")
             else:
                 shutil.copy2(task["src"], task["dst"])
                 copied += 1
-                self._log(f"  - 已复制: {name}")
+                self._log(f"  Copied: {name}")
 
-        self._update(progress=100, status="处理完成！", detail="")
+        self._update(progress=100, status="Done!", detail="")
         self.root.after(300, lambda: self._show_done(total, wm_removed, copied))
 
     def _show_done(self, total: int, removed: int, copied: int):
@@ -362,18 +345,16 @@ class WatermarkRemoverApp:
         frame = ttk.Frame(self.root, style="Main.TFrame", padding=24)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        # Success header
-        ttk.Label(frame, text="处理完成！", font=("", 22, "bold"),
+        ttk.Label(frame, text="Done!", font=("", 22, "bold"),
                   foreground="#28a745", background="#f5f5f7").pack(pady=(10, 12))
 
-        # Stats
         stats_frame = tk.Frame(frame, bg="#f5f5f7")
         stats_frame.pack(pady=(0, 16))
 
         for label, value, color in [
-            ("总文件", str(total), "#333"),
-            ("去除水印", f"{removed} 个", "#007aff"),
-            ("直接复制", f"{copied} 个", "#888"),
+            ("Total", str(total), "#333"),
+            ("Cleaned", str(removed), "#007aff"),
+            ("Copied", str(copied), "#888"),
         ]:
             box = tk.Frame(stats_frame, bg="#ffffff", padx=16, pady=8,
                            highlightthickness=1, highlightbackground="#e0e0e0")
@@ -381,8 +362,7 @@ class WatermarkRemoverApp:
             tk.Label(box, text=value, font=("", 18, "bold"), fg=color, bg="#ffffff").pack()
             tk.Label(box, text=label, font=("", 10), fg="#888", bg="#ffffff").pack()
 
-        # Output paths
-        ttk.Label(frame, text="输出位置：", font=("", 13, "bold"),
+        ttk.Label(frame, text="Output:", font=("", 13, "bold"),
                   background="#f5f5f7").pack(anchor=tk.W, pady=(8, 4))
 
         for p in self.output_paths:
@@ -394,13 +374,12 @@ class WatermarkRemoverApp:
             lbl.pack(anchor=tk.W)
             lbl.bind("<Button-1>", lambda e, path=p: self._open_path(path))
 
-        # Buttons
         btn_frame = ttk.Frame(frame, style="Main.TFrame")
         btn_frame.pack(pady=(20, 0))
 
-        ttk.Button(btn_frame, text="在 Finder 中打开", style="Big.TButton",
+        ttk.Button(btn_frame, text="Open in Finder", style="Big.TButton",
                    command=self._open_in_finder).pack(side=tk.LEFT, padx=8)
-        ttk.Button(btn_frame, text="继续处理", style="Big.TButton",
+        ttk.Button(btn_frame, text="Process More", style="Big.TButton",
                    command=self._build_main_ui).pack(side=tk.LEFT, padx=8)
 
     def _open_path(self, path: str):
@@ -421,11 +400,11 @@ class WatermarkRemoverApp:
         frame = ttk.Frame(self.root, style="Main.TFrame", padding=24)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(frame, text="处理出错", font=("", 20, "bold"),
+        ttk.Label(frame, text="Error", font=("", 20, "bold"),
                   foreground="red", background="#f5f5f7").pack(pady=(20, 12))
         ttk.Label(frame, text=error, font=("", 12), wraplength=500,
                   background="#f5f5f7").pack(pady=(0, 20))
-        ttk.Button(frame, text="返回", style="Big.TButton",
+        ttk.Button(frame, text="Back", style="Big.TButton",
                    command=self._build_main_ui).pack()
 
     def run(self):
